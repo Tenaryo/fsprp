@@ -1,0 +1,5 @@
+build/
+*.vvp
+*.vcd
+.DS_Store
+*_expected.txt.bak
