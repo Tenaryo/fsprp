@@ -65,10 +65,8 @@ make clean
 │   ├── extend.v                       # Immediate generator (I/S/B/J/U types)
 │   ├── alu.v                          # Arithmetic logic unit
 │   └── data_mem.v                     # Data memory (128 bytes, byte/word access)
-├── tests/                             # Test suite
-│   ├── include/test_macros.vh         # Shared test macros (CHECK_EQ, PASS, FAIL)
-│   ├── golden/sim1_expected.txt       # Golden output for sim1
-│   └── test_*.v                       # Per-instruction tests (22 tests)
-└── docs/                              # Documentation
-    └── Lab3.pdf
+└── tests/                             # Test suite
+    ├── include/test_macros.vh         # Shared test macros (CHECK_EQ, PASS, FAIL)
+    ├── golden/sim1_expected.txt       # Golden output for sim1
+    └── test_*.v                       # Per-instruction tests (22 tests)
 ```
