@@ -117,12 +117,26 @@ module FiveStagePipeline (
         .rs2_data_o (rs2_data)
     );
 
-    wire [31:0] diff   = rs1_data - rs2_data;
+    wire br_fwd_a_mem = reg_wen_mem && rd_addr_mem != 5'b0 && (rd_addr_mem == inst_id[19:15]);
+    wire br_fwd_a_wb  = reg_wen_wb  && rd_addr_wb  != 5'b0 && (rd_addr_wb  == inst_id[19:15])
+                        && !(br_fwd_a_mem && rd_addr_mem == rd_addr_wb);
+    wire br_fwd_b_mem = reg_wen_mem && rd_addr_mem != 5'b0 && (rd_addr_mem == inst_id[24:20]);
+    wire br_fwd_b_wb  = reg_wen_wb  && rd_addr_wb  != 5'b0 && (rd_addr_wb  == inst_id[24:20])
+                        && !(br_fwd_b_mem && rd_addr_mem == rd_addr_wb);
+
+    wire [31:0] br_rs1 = br_fwd_a_mem ? alu_result_mem :
+                         br_fwd_a_wb  ? wb_data        :
+                                        rs1_data;
+    wire [31:0] br_rs2 = br_fwd_b_mem ? alu_result_mem :
+                         br_fwd_b_wb  ? wb_data        :
+                                        rs2_data;
+
+    wire [31:0] diff   = br_rs1 - br_rs2;
     wire        diff_z = (diff == 32'b0);
     wire        diff_n = diff[31];
-    wire        diff_v = (rs1_data[31] != rs2_data[31]) && (diff[31] != rs1_data[31]);
-    wire        signed_less = (rs1_data[31] != rs2_data[31])
-                            ? rs1_data[31] : (diff_n ^ diff_v);
+    wire        diff_v = (br_rs1[31] != br_rs2[31]) && (diff[31] != br_rs1[31]);
+    wire        signed_less = (br_rs1[31] != br_rs2[31])
+                            ? br_rs1[31] : (diff_n ^ diff_v);
 
     wire beq_taken = (branch_type == 2'b01) && diff_z;
     wire bne_taken = (branch_type == 2'b10) && ~diff_z;
@@ -144,7 +158,7 @@ module FiveStagePipeline (
     assign flush_id = (~stall && take_jalr_ex) || stall;
     assign pc_en = ~stall;
 
-    assign next_pc = take_jalr_ex      ? alu_result         :
+    assign next_pc = take_jalr_ex      ? {alu_result[31:1], 1'b0} :
                      take_br_or_j       ? (jump ? jump_target : branch_target) :
                                           pc_plus_4;
 
