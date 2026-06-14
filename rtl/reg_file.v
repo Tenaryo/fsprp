@@ -20,7 +20,7 @@ module reg_file (
     assign rs1_data_o = (rs1_addr_i == 0) ? 32'b0 : regs[rs1_addr_i];
     assign rs2_data_o = (rs2_addr_i == 0) ? 32'b0 : regs[rs2_addr_i];
 
-    always @(posedge clk) begin
+    always @(negedge clk) begin
         if (rd_wen_i && rd_addr_i != 0) begin
             regs[rd_addr_i] <= rd_data_i;
         end
