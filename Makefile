@@ -10,10 +10,8 @@ VCD          = $(BUILD_DIR)/sim1.vcd
 .PHONY: sim clean tests wave
 
 sim: $(VVP)
-	@vvp -n $(VVP) 2>&1 | grep -v -e "VCD info" -e '\$$stop' > $(BUILD_DIR)/sim_output.txt; \
-	echo "--------- Final Output ---------"; \
-	tail -7 $(BUILD_DIR)/sim_output.txt; \
-	echo "--------------------------------"; \
+	@vvp -n $(VVP) 2>&1 | grep -v -e "VCD info" -e '\$$finish' > $(BUILD_DIR)/sim_output.txt; \
+	cat $(BUILD_DIR)/sim_output.txt; \
 	if diff -q $(BUILD_DIR)/sim_output.txt $(TEST_DIR)/golden/sim1_expected.txt > /dev/null 2>&1; then \
 		echo "PASS: sim"; \
 	else \
