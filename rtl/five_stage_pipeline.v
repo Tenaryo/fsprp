@@ -117,18 +117,28 @@ module FiveStagePipeline (
         .rs2_data_o (rs2_data)
     );
 
-    wire br_fwd_a_mem = reg_wen_mem && rd_addr_mem != 5'b0 && (rd_addr_mem == inst_id[19:15]);
-    wire br_fwd_a_wb  = reg_wen_wb  && rd_addr_wb  != 5'b0 && (rd_addr_wb  == inst_id[19:15])
-                        && !(br_fwd_a_mem && rd_addr_mem == rd_addr_wb);
-    wire br_fwd_b_mem = reg_wen_mem && rd_addr_mem != 5'b0 && (rd_addr_mem == inst_id[24:20]);
-    wire br_fwd_b_wb  = reg_wen_wb  && rd_addr_wb  != 5'b0 && (rd_addr_wb  == inst_id[24:20])
-                        && !(br_fwd_b_mem && rd_addr_mem == rd_addr_wb);
+    wire [31:0] fwd_mem_val = mem_read_mem ? mem_rdata : alu_result_mem;
 
-    wire [31:0] br_rs1 = br_fwd_a_mem ? alu_result_mem :
-                         br_fwd_a_wb  ? wb_data        :
+    wire br_fwd_a_ex = !mem_read_ex && reg_wen_ex && rd_addr_ex != 5'b0 && (rd_addr_ex == inst_id[19:15]);
+    wire br_fwd_b_ex = !mem_read_ex && reg_wen_ex && rd_addr_ex != 5'b0 && (rd_addr_ex == inst_id[24:20]);
+    wire br_fwd_a_mem = reg_wen_mem && rd_addr_mem != 5'b0 && (rd_addr_mem == inst_id[19:15])
+                        && !(br_fwd_a_ex && rd_addr_ex == rd_addr_mem);
+    wire br_fwd_a_wb  = reg_wen_wb  && rd_addr_wb  != 5'b0 && (rd_addr_wb  == inst_id[19:15])
+                        && !((br_fwd_a_mem && rd_addr_mem == rd_addr_wb)
+                          || (br_fwd_a_ex && rd_addr_ex == rd_addr_wb));
+    wire br_fwd_b_mem = reg_wen_mem && rd_addr_mem != 5'b0 && (rd_addr_mem == inst_id[24:20])
+                        && !(br_fwd_b_ex && rd_addr_ex == rd_addr_mem);
+    wire br_fwd_b_wb  = reg_wen_wb  && rd_addr_wb  != 5'b0 && (rd_addr_wb  == inst_id[24:20])
+                        && !((br_fwd_b_mem && rd_addr_mem == rd_addr_wb)
+                          || (br_fwd_b_ex && rd_addr_ex == rd_addr_wb));
+
+    wire [31:0] br_rs1 = br_fwd_a_ex ? alu_result  :
+                         br_fwd_a_mem ? fwd_mem_val :
+                         br_fwd_a_wb  ? wb_data      :
                                         rs1_data;
-    wire [31:0] br_rs2 = br_fwd_b_mem ? alu_result_mem :
-                         br_fwd_b_wb  ? wb_data        :
+    wire [31:0] br_rs2 = br_fwd_b_ex ? alu_result  :
+                         br_fwd_b_mem ? fwd_mem_val :
+                         br_fwd_b_wb  ? wb_data      :
                                         rs2_data;
 
     wire [31:0] diff   = br_rs1 - br_rs2;
@@ -212,12 +222,12 @@ module FiveStagePipeline (
                             && (rd_addr_wb == rs2_addr_ex)
                             && !(forward_b_ex && rd_addr_mem == rd_addr_wb);
 
-    wire [31:0] forward_a_val = forward_a_ex ? alu_result_mem :
-                                forward_a_wb ? wb_data        :
-                                               rs1_data_ex;
-    wire [31:0] forward_b_val = forward_b_ex ? alu_result_mem :
-                                forward_b_wb ? wb_data        :
-                                               rs2_data_ex;
+    wire [31:0] forward_a_val = forward_a_ex ? fwd_mem_val :
+                                 forward_a_wb ? wb_data        :
+                                                rs1_data_ex;
+    wire [31:0] forward_b_val = forward_b_ex ? fwd_mem_val :
+                                 forward_b_wb ? wb_data        :
+                                                rs2_data_ex;
 
     assign alu_src_a = forward_a_val;
     assign alu_src_b = alu_src_b_sel_ex ? imm_ex : forward_b_val;
